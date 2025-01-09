@@ -24,6 +24,29 @@ def identify_patterns(df):
     df['body_ratio'] = (df['close'] - df['open']) / (df['high'] - df['low'])
     df['upper_shadow'] = (df['high'] - df[['open', 'close']].max(axis=1)) / (df['high'] - df['low'])
     df['lower_shadow'] = (df[['open', 'close']].min(axis=1) - df['low']) / (df['high'] - df['low'])
+    
+    # 添加锥子线特征
+    df['body'] = abs(df['close'] - df['open'])
+    df['prev_body'] = df['body'].shift(1)
+    df['upper_shadow_abs'] = df['high'] - df[['open', 'close']].max(axis=1)
+    df['lower_shadow_abs'] = df[['open', 'close']].min(axis=1) - df['low']
+    
+    # 计算锥子线条件
+    df['is_spindle'] = (
+        (df['body'] > 0.6 * (df['upper_shadow_abs'] + df['lower_shadow_abs'])) &  # 实体占比大
+        (df['body'] > df['prev_body'] * 1.5) &                                    # 实体比前一根大
+        (df['upper_shadow_abs'] < df['body'] * 0.3) &                            # 上影线短
+        (df['lower_shadow_abs'] < df['body'] * 0.3)                              # 下影线短
+    )
+    
+    # 添加方向
+    df['spindle'] = 0
+    df.loc[(df['is_spindle']) & (df['close'] > df['open']), 'spindle'] = 1    # 看涨锥子
+    df.loc[(df['is_spindle']) & (df['close'] < df['open']), 'spindle'] = -1   # 看跌锥子
+    
+    # 删除中间计算列
+    df = df.drop(['body', 'prev_body', 'upper_shadow_abs', 'lower_shadow_abs', 'is_spindle'], axis=1)
+    
     print(f"添加K线特征后的特征数: {len(df.columns)}")
     
     # 2. 技术指标

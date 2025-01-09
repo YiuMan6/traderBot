@@ -4,6 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 import pandas_ta as ta  
+import openpyxl
 
 from datetime import datetime
 from features.candle_patterns import identify_patterns
@@ -38,10 +39,6 @@ def load_data(file_path, batch_size, lookback=30):
     # 转换为DataFrame并确保使用复制
     df = pd.DataFrame(data).copy()
     
-    # 打印原始数据信息
-    # print("\n=== 原始数据信息 ===")
-    # print(df.info())
-    
     # 时间处理
     df.loc[:, 'time'] = pd.to_datetime(df['time'])
     df = df.sort_values('time').reset_index(drop=True)
@@ -60,12 +57,6 @@ def load_data(file_path, batch_size, lookback=30):
     # 准备特征
     feature_columns = [col for col in df.columns if col not in ['time', 'future_return', 'future_direction']]
     
-    # print("\n=== 最终特征维度 ===")
-    # print(f"特征数量: {len(feature_columns)}")
-    # print("特征列表:")
-    # for i, col in enumerate(feature_columns, 1):
-    #     print(f"{i}. {col}")
-    
     X = df[feature_columns].values
     y = df['future_direction'].values
 
@@ -75,12 +66,6 @@ def load_data(file_path, batch_size, lookback=30):
     
     # 创建序列
     X_seq, y_seq = create_sequences(X_scaled, y, lookback)
-    
-    # 打印数据集信息
-    # print(f"\n=== 数据集信息 ===")
-    # print(f"序列数量: {len(X_seq)}")
-    # print(f"每个序列长度: {lookback}")
-    # print(f"每个序列特征数: {X_seq.shape[2]}")
     
     # 创建数据加载器
     train_dataset = TimeSeriesDataset(X_seq, y_seq)
