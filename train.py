@@ -104,9 +104,9 @@ if __name__ == "__main__":
     )
     
     # 4. 训练模型
-    # train_model(
-    #     model=model,
-    #     train_loader=data['train_loader'],
-    #     num_epochs=ModelConfig.NUM_EPOCHS,
-    #     learning_rate=ModelConfig.LEARNING_RATE
-    # )
+    train_model(
+        model=model,
+        train_loader=data['train_loader'],
+        num_epochs=ModelConfig.NUM_EPOCHS,
+        learning_rate=ModelConfig.LEARNING_RATE
+    )

@@ -25,27 +25,116 @@ def identify_patterns(df):
     df['upper_shadow'] = (df['high'] - df[['open', 'close']].max(axis=1)) / (df['high'] - df['low'])
     df['lower_shadow'] = (df[['open', 'close']].min(axis=1) - df['low']) / (df['high'] - df['low'])
     
-    # 添加锥子线特征
+    # 计算基础特征
     df['body'] = abs(df['close'] - df['open'])
-    df['prev_body'] = df['body'].shift(1)
-    df['upper_shadow_abs'] = df['high'] - df[['open', 'close']].max(axis=1)
-    df['lower_shadow_abs'] = df[['open', 'close']].min(axis=1) - df['low']
+    df['body_prev'] = df['body'].shift(1)
+    df['body_prev2'] = df['body'].shift(2)
+    df['close_prev'] = df['close'].shift(1)
+    df['open_prev'] = df['open'].shift(1)
+    df['close_prev2'] = df['close'].shift(2)
+    df['open_prev2'] = df['open'].shift(2)
     
-    # 计算锥子线条件
-    df['is_spindle'] = (
-        (df['body'] > 0.6 * (df['upper_shadow_abs'] + df['lower_shadow_abs'])) &  # 实体占比大
-        (df['body'] > df['prev_body'] * 1.5) &                                    # 实体比前一根大
-        (df['upper_shadow_abs'] < df['body'] * 0.3) &                            # 上影线短
-        (df['lower_shadow_abs'] < df['body'] * 0.3)                              # 下影线短
+    # 计算实体中点
+    df['mid_point'] = (df['open'] + df['close']) / 2
+    df['mid_point_prev'] = (df['open_prev'] + df['close_prev']) / 2
+    df['mid_point_prev2'] = (df['open_prev2'] + df['close_prev2']) / 2
+    
+    # 流星线形态 (看跌反转)
+    df['shooting_star'] = 0
+    shooting_star_condition = (
+        (df['upper_shadow'] > 2 * df['body_ratio']) &     # 上影线至少是实体的2倍
+        (df['lower_shadow'] < 0.1) &                      # 几乎没有下影线
+        (df['body'] < df['body_prev'] * 0.5) &           # 实体小于前一天的一半
+        (df['close'] < df['close_prev'])                  # 收盘价低于前一天
     )
+    df.loc[shooting_star_condition, 'shooting_star'] = 1
     
-    # 添加方向
-    df['spindle'] = 0
-    df.loc[(df['is_spindle']) & (df['close'] > df['open']), 'spindle'] = 1    # 看涨锥子
-    df.loc[(df['is_spindle']) & (df['close'] < df['open']), 'spindle'] = -1   # 看跌锥子
+    # 倒锤子形态 (看涨反转)
+    df['inverted_hammer'] = 0
+    inverted_hammer_condition = (
+        (df['upper_shadow'] > 2 * df['body_ratio']) &     # 上影线至少是实体的2倍
+        (df['lower_shadow'] < 0.1) &                      # 几乎没有下影线
+        (df['body'] < df['body_prev'] * 0.5) &           # 实体小于前一天的一半
+        (df['close'] > df['close_prev'])                  # 收盘价高于前一天
+    )
+    df.loc[inverted_hammer_condition, 'inverted_hammer'] = 1
+    
+    # 启明星模式 (看涨反转)
+    df['morning_star'] = 0
+    morning_star_condition = (
+        (df['close_prev2'] < df['open_prev2']) &                    # 第一天是阴线
+        (df['body_prev2'] > df['body_prev'] * 2) &                 # 第一天实体大于第二天
+        (df['mid_point_prev'] < df['close_prev2']) &               # 第二天位于第一天下方
+        (df['close'] > df['open']) &                               # 第三天是阳线
+        (df['close'] > df['mid_point_prev2'])                      # 第三天收盘价高于第一天中点
+    )
+    df.loc[morning_star_condition, 'morning_star'] = 1
+    
+    # 黄昏星模式 (看跌反转)
+    df['evening_star'] = 0
+    evening_star_condition = (
+        (df['close_prev2'] > df['open_prev2']) &                    # 第一天是阳线
+        (df['body_prev2'] > df['body_prev'] * 2) &                 # 第一天实体大于第二天
+        (df['mid_point_prev'] > df['close_prev2']) &               # 第二天位于第一天上方
+        (df['close'] < df['open']) &                               # 第三天是阴线
+        (df['close'] < df['mid_point_prev2'])                      # 第三天收盘价低于第一天中点
+    )
+    df.loc[evening_star_condition, 'evening_star'] = 1
+    
+    # 添加孕线形态检测
+    # 看涨孕线：第一天大阴线，第二天小阳线被包含在第一天实体内
+    df['bullish_harami'] = 0
+    bullish_harami_condition = (
+        (df['close_prev'] < df['open_prev']) &                    # 第一天是阴线
+        (df['close'] > df['open']) &                             # 第二天是阳线
+        (df['body'] < df['body_prev'] * 0.5) &                   # 第二天实体小于第一天的一半
+        (df['open'] > df['close_prev']) &                        # 第二天开盘价高于第一天收盘价
+        (df['close'] < df['open_prev'])                          # 第二天收盘价低于第一天开盘价
+    )
+    df.loc[bullish_harami_condition, 'bullish_harami'] = 1
+    
+    # 看跌孕线：第一天大阳线，第二天小阴线被包含在第一天实体内
+    df['bearish_harami'] = 0
+    bearish_harami_condition = (
+        (df['close_prev'] > df['open_prev']) &                    # 第一天是阳线
+        (df['close'] < df['open']) &                             # 第二天是阴线
+        (df['body'] < df['body_prev'] * 0.5) &                   # 第二天实体小于第一天的一半
+        (df['open'] < df['close_prev']) &                        # 第二天开盘价低于第一天收盘价
+        (df['close'] > df['open_prev'])                          # 第二天收盘价高于第一天开盘价
+    )
+    df.loc[bearish_harami_condition, 'bearish_harami'] = 1
+    
+    # 在孕线形态之后添加反击线形态检测
+    
+    # 看涨反击线：第一天大阴线，第二天开盘继续下跌但收盘价接近前一天开盘价
+    df['bullish_counter'] = 0
+    bullish_counter_condition = (
+        (df['close_prev'] < df['open_prev']) &                    # 第一天是阴线
+        (df['body_prev'] > df['body'].mean()) &                   # 第一天是大阴线
+        (df['open'] < df['close_prev']) &                         # 第二天以跳空低开
+        (df['close'] > df['open']) &                             # 第二天是阳线
+        (abs(df['close'] - df['open_prev']) < df['body_prev'] * 0.1)  # 第二天收盘价接近第一天开盘价
+    )
+    df.loc[bullish_counter_condition, 'bullish_counter'] = 1
+    
+    # 看跌反击线：第一天大阳线，第二天开盘继续上涨但收盘价接近前一天开盘价
+    df['bearish_counter'] = 0
+    bearish_counter_condition = (
+        (df['close_prev'] > df['open_prev']) &                    # 第一天是阳线
+        (df['body_prev'] > df['body'].mean()) &                   # 第一天是大阳线
+        (df['open'] > df['close_prev']) &                         # 第二天以跳空高开
+        (df['close'] < df['open']) &                             # 第二天是阴线
+        (abs(df['close'] - df['open_prev']) < df['body_prev'] * 0.1)  # 第二天收盘价接近第一天开盘价
+    )
+    df.loc[bearish_counter_condition, 'bearish_counter'] = 1
     
     # 删除中间计算列
-    df = df.drop(['body', 'prev_body', 'upper_shadow_abs', 'lower_shadow_abs', 'is_spindle'], axis=1)
+    columns_to_drop = [
+        'body', 'body_prev', 'body_prev2', 
+        'close_prev', 'open_prev', 'close_prev2', 'open_prev2',
+        'mid_point', 'mid_point_prev', 'mid_point_prev2'
+    ]
+    df = df.drop(columns_to_drop, axis=1)
     
     print(f"添加K线特征后的特征数: {len(df.columns)}")
     
