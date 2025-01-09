@@ -184,6 +184,30 @@ def identify_patterns(df):
     )
     df.loc[falling_three_condition, 'falling_three'] = 1
     
+    # 在三法形态之后添加分手线形态检测
+    
+    # 看涨分手线：第一天阴线，第二天阳线，两天开盘价相同或接近
+    df['bullish_separating'] = 0
+    bullish_separating_condition = (
+        (df['close_prev'] < df['open_prev']) &                    # 第一天是阴线
+        (df['close'] > df['open']) &                             # 第二天是阳线
+        (abs(df['open'] - df['open_prev']) < df['body'].mean() * 0.1) &  # 两天开盘价接近
+        (df['close'] > df['close_prev']) &                       # 第二天收盘价高于第一天收盘价
+        (df['body'] > df['body'].mean() * 0.8)                   # 确保实体足够大
+    )
+    df.loc[bullish_separating_condition, 'bullish_separating'] = 1
+    
+    # 看跌分手线：第一天阳线，第二天阴线，两天开盘价相同或接近
+    df['bearish_separating'] = 0
+    bearish_separating_condition = (
+        (df['close_prev'] > df['open_prev']) &                    # 第一天是阳线
+        (df['close'] < df['open']) &                             # 第二天是阴线
+        (abs(df['open'] - df['open_prev']) < df['body'].mean() * 0.1) &  # 两天开盘价接近
+        (df['close'] < df['close_prev']) &                       # 第二天收盘价低于第一天收盘价
+        (df['body'] > df['body'].mean() * 0.8)                   # 确保实体足够大
+    )
+    df.loc[bearish_separating_condition, 'bearish_separating'] = 1
+    
     # 更新要删除的中间计算列
     columns_to_drop = [
         'body', 'body_prev', 'body_prev2', 
