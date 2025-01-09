@@ -49,8 +49,8 @@ yarn-error.log*
 # Data
 data/
 
-# Best model
-best_model.pth
+# pth
+*.pth
 
 # _pycache_
 __pycache__/
