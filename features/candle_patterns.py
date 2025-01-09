@@ -1,4 +1,6 @@
 import pandas_ta as ta  
+import pandas as pd
+
 
 def identify_patterns(df):
     # print(df,'df')
@@ -6,7 +8,17 @@ def identify_patterns(df):
     # print("\n=== 开始添加技术指标 ===")
     # print(f"初始特征数: {len(df.columns)}")
     # print(f"初始列名: {df.columns.tolist()}")
-    
+    # df = pd.DataFrame()
+
+# Help about this, 'ta', extension
+    # help(df.ta)
+
+# List of all indicators
+    # df.ta.indicators()
+
+# Help about an indicator such as bbands
+    # help(ta.bbands)
+
     # 1. K线形态特征
     print("\n1. 添加K线形态特征...")
     df['body_ratio'] = (df['close'] - df['open']) / (df['high'] - df['low'])

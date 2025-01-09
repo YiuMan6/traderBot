@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import json
+import numpy as np
 import pandas as pd
 import pandas_ta as ta  
+
 from datetime import datetime
-import numpy as np
 from features.candle_patterns import identify_patterns
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
@@ -22,52 +23,6 @@ class TimeSeriesDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-# def add_technical_features(df):
-#     # print(df,'df')
-#     """添加技术分析特征"""
-#     # print("\n=== 开始添加技术指标 ===")
-#     # print(f"初始特征数: {len(df.columns)}")
-#     # print(f"初始列名: {df.columns.tolist()}")
-    
-#     # 1. K线形态特征
-#     print("\n1. 添加K线形态特征...")
-#     df['body_ratio'] = (df['close'] - df['open']) / (df['high'] - df['low'])
-#     df['upper_shadow'] = (df['high'] - df[['open', 'close']].max(axis=1)) / (df['high'] - df['low'])
-#     df['lower_shadow'] = (df[['open', 'close']].min(axis=1) - df['low']) / (df['high'] - df['low'])
-#     print(f"添加K线特征后的特征数: {len(df.columns)}")
-    
-#     # 2. 技术指标
-#     print("\n2. 添加技术指标...")
-#     # 使用pandas_ta添加技术指标
-#     df.ta.sma(length=5, append=True)
-#     df.ta.sma(length=10, append=True)
-#     df.ta.sma(length=20, append=True)
-#     df.ta.macd(append=True)
-#     df.ta.rsi(length=14, append=True)
-#     df.ta.bbands(length=20, append=True)
-#     print(f"添加技术指标后的特征数: {len(df.columns)}")
-    
-#     # 3. 成交量特征
-#     print("\n3. 添加成交量特征...")
-#     df['volume_ma5'] = df['volume'].rolling(window=5).mean()
-#     df['volume_ma10'] = df['volume'].rolling(window=10).mean()
-#     df['volume_ratio'] = df['volume'] / df['volume_ma5']
-#     print(f"添加成交量特征后的特征数: {len(df.columns)}")
-    
-#     # 4. 价格与均线关系
-#     print("\n4. 添加价格均线关系...")
-#     df['price_ma5_ratio'] = df['close'] / df['SMA_5']
-#     df['price_ma10_ratio'] = df['close'] / df['SMA_10']
-#     df['price_ma20_ratio'] = df['close'] / df['SMA_20']
-#     print(f"添加价格均线关系后的特征数: {len(df.columns)}")
-    
-#     # 打印最终特征列表
-#     print("\n=== 最终特征列表 ===")
-#     for i, col in enumerate(df.columns, 1):
-#         print(f"{i}. {col}")
-    
-#     return df
-
 def create_sequences(x, y, lookback):
     sequences, labels = [], []
     for i in range(len(x) - lookback):
@@ -84,8 +39,8 @@ def load_data(file_path, batch_size, lookback=30):
     df = pd.DataFrame(data).copy()
     
     # 打印原始数据信息
-    print("\n=== 原始数据信息 ===")
-    print(df.info())
+    # print("\n=== 原始数据信息 ===")
+    # print(df.info())
     
     # 时间处理
     df.loc[:, 'time'] = pd.to_datetime(df['time'])
@@ -105,11 +60,11 @@ def load_data(file_path, batch_size, lookback=30):
     # 准备特征
     feature_columns = [col for col in df.columns if col not in ['time', 'future_return', 'future_direction']]
     
-    print("\n=== 最终特征维度 ===")
-    print(f"特征数量: {len(feature_columns)}")
-    print("特征列表:")
-    for i, col in enumerate(feature_columns, 1):
-        print(f"{i}. {col}")
+    # print("\n=== 最终特征维度 ===")
+    # print(f"特征数量: {len(feature_columns)}")
+    # print("特征列表:")
+    # for i, col in enumerate(feature_columns, 1):
+    #     print(f"{i}. {col}")
     
     X = df[feature_columns].values
     y = df['future_direction'].values
@@ -122,10 +77,10 @@ def load_data(file_path, batch_size, lookback=30):
     X_seq, y_seq = create_sequences(X_scaled, y, lookback)
     
     # 打印数据集信息
-    print(f"\n=== 数据集信息 ===")
-    print(f"序列数量: {len(X_seq)}")
-    print(f"每个序列长度: {lookback}")
-    print(f"每个序列特征数: {X_seq.shape[2]}")
+    # print(f"\n=== 数据集信息 ===")
+    # print(f"序列数量: {len(X_seq)}")
+    # print(f"每个序列长度: {lookback}")
+    # print(f"每个序列特征数: {X_seq.shape[2]}")
     
     # 创建数据加载器
     train_dataset = TimeSeriesDataset(X_seq, y_seq)
