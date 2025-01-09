@@ -128,11 +128,70 @@ def identify_patterns(df):
     )
     df.loc[bearish_counter_condition, 'bearish_counter'] = 1
     
-    # 删除中间计算列
+    # 在反击线形态之后添加三法形态检测
+    
+    # 计算额外需要的特征
+    df['body_prev3'] = df['body'].shift(3)
+    df['body_prev4'] = df['body'].shift(4)
+    df['close_prev3'] = df['close'].shift(3)
+    df['close_prev4'] = df['close'].shift(4)
+    df['open_prev3'] = df['open'].shift(3)
+    df['open_prev4'] = df['open'].shift(4)
+    
+    # 上升三法：一根大阳线后跟三根小阴线，最后一根突破性大阳线
+    df['rising_three'] = 0
+    rising_three_condition = (
+        # 第一天大阳线
+        (df['close_prev4'] > df['open_prev4']) &                     # 第一天是阳线
+        (df['body_prev4'] > df['body'].mean()) &                     # 第一天是大阳线
+        
+        # 中间三天小阴线，保持在第一天范围内
+        (df['close_prev3'] < df['open_prev3']) &                     # 第二天是阴线
+        (df['close_prev2'] < df['open_prev2']) &                     # 第三天是阴线
+        (df['close_prev'] < df['open_prev']) &                       # 第四天是阴线
+        
+        # 中间三天的收盘价保持在第一天实体范围内
+        (df['close_prev3'] > df['open_prev4']) &
+        (df['close_prev2'] > df['open_prev4']) &
+        (df['close_prev'] > df['open_prev4']) &
+        
+        # 最后一天突破性大阳线
+        (df['close'] > df['open']) &                                 # 最后一天是阳线
+        (df['close'] > df['close_prev4'])                           # 突破前高
+    )
+    df.loc[rising_three_condition, 'rising_three'] = 1
+    
+    # 下降三法：一根大阴线后跟三根小阳线，最后一根突破性大阴线
+    df['falling_three'] = 0
+    falling_three_condition = (
+        # 第一天大阴线
+        (df['close_prev4'] < df['open_prev4']) &                     # 第一天是阴线
+        (df['body_prev4'] > df['body'].mean()) &                     # 第一天是大阴线
+        
+        # 中间三天小阳线，保持在第一天范围内
+        (df['close_prev3'] > df['open_prev3']) &                     # 第二天是阳线
+        (df['close_prev2'] > df['open_prev2']) &                     # 第三天是阳线
+        (df['close_prev'] > df['open_prev']) &                       # 第四天是阳线
+        
+        # 中间三天的收盘价保持在第一天实体范围内
+        (df['close_prev3'] < df['open_prev4']) &
+        (df['close_prev2'] < df['open_prev4']) &
+        (df['close_prev'] < df['open_prev4']) &
+        
+        # 最后一天突破性大阴线
+        (df['close'] < df['open']) &                                 # 最后一天是阴线
+        (df['close'] < df['close_prev4'])                           # 突破前低
+    )
+    df.loc[falling_three_condition, 'falling_three'] = 1
+    
+    # 更新要删除的中间计算列
     columns_to_drop = [
         'body', 'body_prev', 'body_prev2', 
         'close_prev', 'open_prev', 'close_prev2', 'open_prev2',
-        'mid_point', 'mid_point_prev', 'mid_point_prev2'
+        'mid_point', 'mid_point_prev', 'mid_point_prev2',
+        'body_prev3', 'body_prev4',
+        'close_prev3', 'close_prev4',
+        'open_prev3', 'open_prev4'
     ]
     df = df.drop(columns_to_drop, axis=1)
     
