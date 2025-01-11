@@ -8,6 +8,9 @@ from tools.device import get_device
 from configs.model_config import ModelConfig
 from tools.model_info import count_parameters
 
+## source ~/.bashrc
+##conda activate pytorchEnv
+
 def train_model(model, train_loader, num_epochs=ModelConfig.NUM_EPOCHS, 
                 learning_rate=ModelConfig.LEARNING_RATE, 
                 accumulation_steps=ModelConfig.ACCUMULATION_STEPS):
