@@ -54,3 +54,6 @@ data/
 
 # _pycache_
 __pycache__/
+
+# excel
+*.xlsx
