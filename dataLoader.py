@@ -10,6 +10,7 @@ from datetime import datetime
 from features.candle_patterns import identify_patterns
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
+from configs.model_config import ModelConfig
 
 
 class TimeSeriesDataset(Dataset):
@@ -43,9 +44,15 @@ def load_data(file_path, batch_size, lookback=30):
     df.loc[:, 'time'] = pd.to_datetime(df['time'])
     df = df.sort_values('time').reset_index(drop=True)
     
-    # 添加技术指标
-    ## k 线形态指标
+    # 添加K线形态识别
+    print("正在识别K线形态...")
     df = identify_patterns(df)
+    
+    # 打印识别到的形态数量
+    pattern_cols = [col for col in df.columns if 'pattern' in col]
+    for col in pattern_cols:
+        count = df[col].sum()
+        print(f"{col}: 识别到 {count} 个")
     
     # 删除包含NaN的行
     df = df.dropna().reset_index(drop=True)
@@ -70,11 +77,12 @@ def load_data(file_path, batch_size, lookback=30):
     # 创建数据加载器
     train_dataset = TimeSeriesDataset(X_seq, y_seq)
     train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
+        train_dataset,
+        batch_size=batch_size,
         shuffle=True,
-        drop_last=False,
-        num_workers=4,
+        pin_memory=ModelConfig.PIN_MEMORY,
+        prefetch_factor=ModelConfig.PREFETCH_FACTOR,
+        num_workers=2,
         persistent_workers=True
     )
 
