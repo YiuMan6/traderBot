@@ -5,6 +5,14 @@ class TransformerModel(nn.Module):
     def __init__(self, feature_dim, hidden_dim, num_layers, num_heads, lookback=30, dropout=0.1):
         super().__init__()
         
+        # 使用内存效率更高的设置
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        
+        # 保存特征维度
+        self.feature_dim = feature_dim
+        
         # 1. 更强的特征提取
         self.input_projection = nn.Sequential(
             nn.Linear(feature_dim, hidden_dim),
@@ -45,6 +53,9 @@ class TransformerModel(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, 2)
         )
+        
+        # 存储最后一次的注意力权重
+        self.attention_weights = None
 
     def forward(self, x):
         # 1. 特征提取
@@ -64,3 +75,45 @@ class TransformerModel(nn.Module):
         
         # 5. 输出预测
         return self.output_layer(combined)
+    
+    def get_attention_weights(self, x):
+        """获取注意力权重的方法"""
+        self.eval()  # 设置为评估模式
+        with torch.no_grad():
+            _ = self(x)  # 运行前向传播以获取注意力权重
+            return self.attention_weights
+
+# 自定义 TransformerEncoder 来获取注意力权重
+class CustomTransformerEncoder(nn.Module):
+    def __init__(self, d_model, nhead, num_layers, dropout):
+        super().__init__()
+        self.layers = nn.ModuleList([
+            CustomTransformerEncoderLayer(d_model, nhead, dropout)
+            for _ in range(num_layers)
+        ])
+        
+    def forward(self, src, return_attention=False):
+        output = src
+        attention_weights = []
+        
+        for layer in self.layers:
+            output, attn = layer(output)
+            if return_attention:
+                attention_weights.append(attn)
+        
+        if return_attention:
+            # 返回最后一层的注意力权重
+            return output, attention_weights[-1]
+        return output
+
+class CustomTransformerEncoderLayer(nn.Module):
+    def __init__(self, d_model, nhead, dropout):
+        super().__init__()
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        # ... 其他层的定义 ...
+        
+    def forward(self, src):
+        # 获取注意力输出和权重
+        attn_output, attn_weights = self.self_attn(src, src, src, need_weights=True)
+        # ... 处理其他层 ...
+        return output, attn_weights
