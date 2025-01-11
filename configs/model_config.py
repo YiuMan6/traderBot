@@ -7,11 +7,19 @@ class ModelConfig:
     LOOKBACK = 50       # 回看窗口大小，表示模型考虑前50个时间步的数据
     
     # 训练参数
-    BATCH_SIZE = 256    # 批处理大小，每次训练使用256个样本
-    NUM_EPOCHS = 100    # 训练轮数
-    LEARNING_RATE = 0.001  # 学习率
+    BATCH_SIZE = 256  # 调回原来的大小
+    NUM_EPOCHS = 10    # 训练轮数
+    LEARNING_RATE = 1e-4  # 学习率
     ACCUMULATION_STEPS = 4  # 梯度累积步数
     
     # 数据参数
     DATA_PATH = './data/data.json'  # 数据文件路径
     MODEL_SAVE_PATH = 'best_model.pth'  # 模型保存路径 
+    
+    # 添加混合精度配置
+    USE_AMP = True  # 启用混合精度
+    GRAD_CLIP = 1.0  # 梯度裁剪阈值 
+    
+    # 优化内存使用的配置
+    PREFETCH_FACTOR = 2  # 减少预加载数量
+    PIN_MEMORY = True  # 使用固定内存 
