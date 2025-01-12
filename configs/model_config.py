@@ -1,16 +1,20 @@
 class ModelConfig:
-    # 模型参数
-    HIDDEN_DIM = 512    # 隐藏层维度，决定了模型的容量和表达能力
-    NUM_LAYERS = 8      # Transformer编码器/解码器的层数，层数越多模型越深
-    NUM_HEADS = 8       # 多头注意力机制中的头数，每个头学习不同的特征关系
-    DROPOUT = 0.3       # Dropout比率，用于防止过拟合，0.3表示30%的神经元会被随机关闭
-    LOOKBACK = 50       # 回看窗口大小，表示模型考虑前50个时间步的数据
+    # 模型参数 - 考虑到数据规模，调整模型大小
+    HIDDEN_DIM = 256    # 从512降到256，减少计算量
+    NUM_LAYERS = 6      # 从8降到6，减少计算量
+    NUM_HEADS = 8       # 保持不变
+    DROPOUT = 0.2       # 从0.3降到0.2，加快训练
+    LOOKBACK = 30       # 从50降到30，减少序列长度
     
     # 训练参数
-    BATCH_SIZE = 256  # 调回原来的大小
-    NUM_EPOCHS = 10    # 训练轮数
-    LEARNING_RATE = 1e-4  # 学习率
-    ACCUMULATION_STEPS = 4  # 梯度累积步数
+    BATCH_SIZE = 512    # 从256增加到512，提高吞吐量
+    NUM_EPOCHS = 10     
+    LEARNING_RATE = 2e-4  # 略微提高学习率
+    EARLY_STOPPING = 5  # 早停检查
+    # 性能优化
+    PREFETCH_FACTOR = 4    # 增加预加载数量
+    PIN_MEMORY = True
+    NUM_WORKERS = 4        # 增加工作进程数
     
     # 数据参数
     DATA_PATH = './data/data.json'  # 数据文件路径
