@@ -61,7 +61,7 @@ def load_data(file_path, batch_size, lookback=30):
     df.loc[:, 'future_return'] = (df['close'].shift(-1) / df['close'] - 1) * 100
     df.loc[:, 'future_direction'] = (df['future_return'] > 0).astype(int)
     
-    # 准备特征,是模型需要预测的特征
+    # 准备特征
     feature_columns = [col for col in df.columns if col not in ['time', 'future_return', 'future_direction']]
     
     X = df[feature_columns].values
@@ -74,10 +74,29 @@ def load_data(file_path, batch_size, lookback=30):
     # 创建序列
     X_seq, y_seq = create_sequences(X_scaled, y, lookback)
     
-    # 创建数据加载器
-    train_dataset = TimeSeriesDataset(X_seq, y_seq)
+    # 划分训练集和验证集
+    train_size = int(0.8 * len(X_seq))  # 80% 用于训练
+    
+    X_train, X_val = X_seq[:train_size], X_seq[train_size:]
+    y_train, y_val = y_seq[:train_size], y_seq[train_size:]
+    
+    # 创建训练集和验证集的数据加载器
+    train_dataset = TimeSeriesDataset(X_train, y_train)
+    val_dataset = TimeSeriesDataset(X_val, y_val)
+    
     train_loader = DataLoader(
         train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        pin_memory=ModelConfig.PIN_MEMORY,
+        prefetch_factor=ModelConfig.PREFETCH_FACTOR,
+        num_workers=ModelConfig.NUM_WORKERS,
+        persistent_workers=True,
+        drop_last=True
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
         batch_size=batch_size,
         shuffle=False,
         pin_memory=ModelConfig.PIN_MEMORY,
@@ -88,12 +107,14 @@ def load_data(file_path, batch_size, lookback=30):
 
     return {
         'train_loader': train_loader,
+        'val_loader': val_loader,    # 添加验证集加载器
         'scaler': scaler,
         'feature_dim': len(feature_columns),
         'lookback': lookback,
         'train_size': len(train_dataset),
+        'val_size': len(val_dataset),
         'time_range': (df['time'].min(), df['time'].max()),
         'feature_names': feature_columns,
-        'df': df  # 添加原始DataFrame以便后续分析
+        'df': df
     }
   
