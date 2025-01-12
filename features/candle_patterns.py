@@ -4,7 +4,7 @@ import pandas as pd
 def identify_patterns(df):
     """识别K线形态"""
     # 确保数据包含必要的列
-    required_cols = ['open', 'high', 'low', 'close']
+    required_cols = ['open', 'high', 'low', 'close','time']
     if not all(col in df.columns for col in required_cols):
         raise ValueError("数据缺少必要的列：open, high, low, close")
     
