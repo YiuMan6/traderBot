@@ -61,7 +61,7 @@ def load_data(file_path, batch_size, lookback=30):
     df.loc[:, 'future_return'] = (df['close'].shift(-1) / df['close'] - 1) * 100
     df.loc[:, 'future_direction'] = (df['future_return'] > 0).astype(int)
     
-    # 准备特征
+    # 准备特征,是模型需要预测的特征
     feature_columns = [col for col in df.columns if col not in ['time', 'future_return', 'future_direction']]
     
     X = df[feature_columns].values
@@ -79,7 +79,7 @@ def load_data(file_path, batch_size, lookback=30):
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         pin_memory=ModelConfig.PIN_MEMORY,
         prefetch_factor=ModelConfig.PREFETCH_FACTOR,
         num_workers=2,
