@@ -1,7 +1,7 @@
 class ModelConfig:
     # 模型参数 - 考虑到数据规模，调整模型大小
     HIDDEN_DIM = 256    # 从512降到256，减少计算量
-    NUM_LAYERS = 6      # 从8降到6，减少计算量
+    NUM_LAYERS = 4      # 从8降到6，减少计算量
     NUM_HEADS = 8       # 保持不变
     DROPOUT = 0.2       # 从0.3降到0.2，加快训练
     LOOKBACK = 30       # 从50降到30，减少序列长度
